@@ -43,7 +43,7 @@ public class BaseApiClient {
         return mClient;
     }
 
-    protected final String getBaseUri() {
+    public final String getBaseUri() {
         return mBaseUri;
     }
 }

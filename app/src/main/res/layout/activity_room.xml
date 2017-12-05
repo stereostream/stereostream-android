@@ -29,6 +29,33 @@
             android:layout_height="wrap_content"
             android:textColor="@color/colorPrimary" />
 
+        <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/activity_room_chat_log_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:fillViewport="false"
+            android:layout_weight="4">
+
+            <TextView
+                android:id="@+id/activity_room_chat_log"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/colorPrimary" />
+        </ScrollView>
+
+        <EditText
+            android:id="@+id/activity_room_chat_input"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:inputType="text"
+            android:imeOptions="actionSend"/>
+        <Button
+            android:id="@+id/activity_room_chat_input_send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/send" />
+
+        <!--
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/activity_room_item_owner_edit_btn"
             android:layout_width="wrap_content"
@@ -46,49 +73,62 @@
             app:layout_anchor="@id/activity_room_view_switcher"
             app:layout_anchorGravity="bottom|end"
             app:srcCompat="@android:drawable/ic_menu_delete" />
-
+        -->
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/activity_room_update_form"
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-
-        <android.support.design.widget.TextInputLayout
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="match_parent">
 
-            <android.support.design.widget.TextInputEditText
-                android:id="@+id/activity_room_update_name"
+            <android.support.design.widget.TextInputLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/prompt_name"
-                android:maxLines="1" />
+                android:layout_height="wrap_content">
 
-        </android.support.design.widget.TextInputLayout>
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/activity_room_update_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/prompt_name"
+                    android:maxLines="1" />
 
-        <Button
-            android:id="@+id/activity_room_update_button"
-            style="?android:textAppearanceSmall"
+            </android.support.design.widget.TextInputLayout>
+
+        </ScrollView>
+
+        <LinearLayout
+            android:id="@+id/footer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/action_update_room"
-            android:textStyle="bold" />
+            android:layout_alignParentBottom="true"
+            android:orientation="vertical"
+            android:layout_weight="2">
 
-        <TextView
-            android:id="@+id/activity_room_update_errors"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="5.63"
-            android:textColor="@color/colorError" />
+            <Button
+                android:id="@+id/activity_room_update_button"
+                style="?android:textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/action_update_room"
+                android:textStyle="bold" />
 
-        <ProgressBar
-            android:id="@+id/activity_room_update_progress"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone" />
-    </LinearLayout>
+            <TextView
+                android:id="@+id/activity_room_update_errors"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="5.63"
+                android:textColor="@color/colorError" />
+
+            <ProgressBar
+                android:id="@+id/activity_room_update_progress"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+        </LinearLayout>
+    </RelativeLayout>
 </ViewSwitcher>

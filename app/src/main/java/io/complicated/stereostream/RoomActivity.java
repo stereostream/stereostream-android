@@ -6,22 +6,28 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TextInputEditText;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
-import android.widget.AutoCompleteTextView;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ViewSwitcher;
 
 import java.lang.ref.WeakReference;
+import java.net.URISyntaxException;
 import java.util.Locale;
 
 import io.complicated.stereostream.api.room.Room;
 import io.complicated.stereostream.api.room.RoomClient;
+import io.complicated.stereostream.api.room.RoomWithLog;
 import io.complicated.stereostream.utils.ActivityUtilsSingleton;
+import io.complicated.stereostream.utils.ChatClient;
 import io.complicated.stereostream.utils.CommonErrorHandlerRedirector;
 import io.complicated.stereostream.utils.ErrorOrEntity;
 import io.complicated.stereostream.utils.PrefSingleton;
@@ -35,17 +41,28 @@ public final class RoomActivity extends AppCompatActivity {
     private ProgressBar mProgressView;
     private ViewSwitcher mViewSwitcher;
     private TextView mReadRoomName;
-    private TextView mReadRoomEmail;
+
     private TextInputEditText mEditRoomName;
-    private AutoCompleteTextView mEditRoomEmail;
     private Button mEditRoomButton;
     private TextView mErrorView;
     private CommonErrorHandlerRedirector mCommonErrorHandlerRedirector;
     private static RoomClient mRoomClient;
     private ProgressHandler mProgressHandler;
+    private GetRoomTask mGetRoomTask = null;
     private UpdateRoomTask mUpdateRoomsTask = null;
     private DeleteRoomTask mDeleteRoomsTask = null;
     private String mOwner;
+
+    private RoomWithLog mRoomWithLog = null;
+
+    // Chat
+    private ScrollView mChatLogScroll;
+    private TextView mChatLog;
+    private EditText mChatInput;
+    private Button mChatInputSend;
+    private ChatClient mChatClient;
+
+    //
 
     private void showReadView() {
         if (isUpdateView()) mViewSwitcher.setDisplayedChild(0);
@@ -57,6 +74,10 @@ public final class RoomActivity extends AppCompatActivity {
 
     private boolean isUpdateView() {
         return mViewSwitcher.getDisplayedChild() == 1;
+    }
+
+    public final void setRoomWithLog(final RoomWithLog roomWithLog) {
+        mRoomWithLog = roomWithLog;
     }
 
     @Override
@@ -95,6 +116,14 @@ public final class RoomActivity extends AppCompatActivity {
 
         mReadRoomName = (TextView) findViewById(R.id.activity_room_item_name);
 
+        if (mRoomWithLog == null) {
+            mGetRoomTask = new GetRoomTask(RoomActivity.this, room);
+            mGetRoomTask.execute((Void) null);
+        }
+
+        mRoomWithLog = RoomWithLog.fromString(mUtils.getFromLocalOrCache("room_with_log"));
+
+        /*
         mEditRoomName = (TextInputEditText) findViewById(R.id.activity_room_update_name);
         mEditRoomButton = (Button) findViewById(R.id.activity_room_update_button);
         if (mEditRoomButton != null)
@@ -108,6 +137,7 @@ public final class RoomActivity extends AppCompatActivity {
                     mUpdateRoomsTask.execute((Void) null);
                 }
             });
+
 
         final FloatingActionButton roomEditBtn = (FloatingActionButton) findViewById(R.id.activity_room_item_owner_edit_btn);
         if (roomEditBtn != null) roomEditBtn.setOnClickListener(
@@ -127,15 +157,60 @@ public final class RoomActivity extends AppCompatActivity {
                         mDeleteRoomsTask.execute((Void) null);
                     }
                 });
+        */
 
-        mProgressView = (ProgressBar)findViewById(R.id.activity_room_update_progress);
+        mProgressView = (ProgressBar) findViewById(R.id.activity_room_update_progress);
         mErrorView = (TextView) findViewById(R.id.activity_room_update_errors);
 
         mProgressHandler = new ProgressHandler(mProgressView, mViewSwitcher,
                 getResources().getInteger(android.R.integer.config_shortAnimTime));
 
+        // Text
+        try {
+            mChatClient = new ChatClient(mRoomClient.getBaseUri() + "/socket.io");
+            mChatClient.connect();
+        } catch (URISyntaxException e) {
+            e.printStackTrace(System.err);
+            Log.getStackTraceString(e);
+        }
+
+        mChatLogScroll = (ScrollView) findViewById(R.id.activity_room_chat_log_scroll);
+        mChatLog = (TextView) findViewById(R.id.activity_room_chat_log);
+        mChatLog.setText(mRoomWithLog == null ? "" : mRoomWithLog.getLogStr());
+
+        mChatInput = (EditText) findViewById(R.id.activity_room_chat_input);
+        mChatInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            public final boolean onEditorAction(final TextView v, final int actionId, final KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEND || actionId == EditorInfo.IME_ACTION_UNSPECIFIED) {
+                    mChatInputSend.performClick();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        mChatInputSend = (Button) findViewById(R.id.activity_room_chat_input_send);
+
+        mChatInputSend.setOnClickListener(new View.OnClickListener() {
+            public final void onClick(View v) {
+                final String msg = String.format(
+                        Locale.getDefault(), "%s", mChatInput.getText()
+                );
+                if (msg != null && msg.length() > 0) {
+                    mChatClient.connect();
+                    mChatClient.send(String.format(Locale.getDefault(), "%s\t%s\t%s",
+                            accessToken, room.getName(), msg
+                    ));
+                    mChatLog.setText(String.format(Locale.getDefault(), "%s\n%s",
+                            msg, mChatLog.getText()
+                    ));
+                }
+                mChatInput.setText(null);
+            }
+        });
+
         setRoomInView(room);
-        setEditRoomInView(room);
+        // setEditRoomInView(room);
     }
 
     private void setRoomInView(@NonNull final Room room) {
@@ -154,14 +229,64 @@ public final class RoomActivity extends AppCompatActivity {
         mProgressHandler.showProgress(show);
     }
 
-    public static final class UpdateRoomTask extends AsyncTask<Void, Void,
-            ErrorOrEntity<Room>> {
+    public static final class GetRoomTask extends AsyncTask<Void, Void, ErrorOrEntity<RoomWithLog>> {
+        private final Room mRoom;
+        private final WeakReference<RoomActivity> mWeakActivity;
 
+        GetRoomTask(final RoomActivity activity, final Room room) {
+            mRoom = room;
+            mWeakActivity = new WeakReference<>(activity);
+        }
+
+        @Override
+        protected final ErrorOrEntity<RoomWithLog> doInBackground(final Void... params) {
+            return mRoomClient.getSync(mRoom);
+        }
+
+        @Override
+        protected final void onPostExecute(final ErrorOrEntity<RoomWithLog> err_res) {
+            final RoomActivity activity = mWeakActivity.get();
+            if (activity == null || activity.isFinishing()) return;
+
+            activity.mGetRoomTask = null;
+            activity.showProgress(false);
+
+            if (err_res.success()) {
+                /*
+                activity.finish();
+
+                final Intent intent = new Intent(activity.getApplicationContext(),
+                        RoomsActivity.class);
+                intent.putExtra("room_with_log", err_res.getEntity().toString());
+                activity.startActivity(intent);
+                */
+                activity.setRoomWithLog(err_res.getEntity());
+                activity.mChatLog.setText(activity.mRoomWithLog.getLogStr());
+            } else {
+                activity.mCommonErrorHandlerRedirector.process(err_res);
+                if (err_res.getErrorResponse() == null) {
+                    err_res.getException().printStackTrace(System.err);
+                    activity.mErrorView.setText(ExceptionFormatter(err_res.getException()));
+                } else activity.mErrorView.setText(String.format(Locale.getDefault(),
+                        "[%d] %s", err_res.getCode(), err_res.getErrorResponse().toString()));
+            }
+        }
+
+        @Override
+        protected final void onCancelled() {
+            final RoomActivity activity = mWeakActivity.get();
+            if (activity == null || activity.isFinishing()) return;
+
+            activity.mGetRoomTask = null;
+            activity.showProgress(false);
+        }
+    }
+
+    public static final class UpdateRoomTask extends AsyncTask<Void, Void, ErrorOrEntity<Room>> {
         private final Room mPrevRoom, mNewRoom;
         private final WeakReference<RoomActivity> mWeakActivity;
 
-        UpdateRoomTask(final RoomActivity activity, final Room room,
-                          final Room newRoom) {
+        UpdateRoomTask(final RoomActivity activity, final Room room, final Room newRoom) {
             mPrevRoom = room;
             mNewRoom = newRoom;
             mWeakActivity = new WeakReference<>(activity);
@@ -208,9 +333,7 @@ public final class RoomActivity extends AppCompatActivity {
         }
     }
 
-    public static final class DeleteRoomTask extends AsyncTask<Void, Void,
-            ErrorOrEntity<Room>> {
-
+    public static final class DeleteRoomTask extends AsyncTask<Void, Void, ErrorOrEntity<Room>> {
         private final Room mRoom;
         private final WeakReference<RoomActivity> mWeakActivity;
 

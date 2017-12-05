@@ -14,7 +14,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ViewSwitcher;
 
 import java.lang.ref.WeakReference;
@@ -94,7 +93,11 @@ public final class RoomsActivity extends AppCompatActivity {
                 getResources().getInteger(android.R.integer.config_shortAnimTime));
         //getError()View = (TextView) findViewById(R.id.errors);
 
-        loadRooms(Room.fromString(mUtils.getFromLocalOrCache("new_room")));
+        final Room newRoom = Room.fromString(mUtils.getFromLocalOrCache("new_room"));
+        if (newRoom == null)
+            loadRooms(null);
+        else
+            loadRooms(newRoom);
     }
 
     final class ItemClick implements AdapterView.OnItemClickListener {

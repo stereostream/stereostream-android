@@ -50,8 +50,8 @@ public final class RoomClient extends BaseApiClient {
                 .build();
     }
 
-    public final ErrorOrEntity<Room> getSync(final Room room) {
-        return ApiClient.sync(getClient(), get(room), Room.class);
+    public final ErrorOrEntity<RoomWithLog> getSync(final Room room) {
+        return ApiClient.sync(getClient(), get(room), RoomWithLog.class);
     }
 
     public final Request put(final Room prevRoom, final Room newRoom) {

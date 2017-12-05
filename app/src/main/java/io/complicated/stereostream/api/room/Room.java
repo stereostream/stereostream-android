@@ -8,17 +8,18 @@ import java.util.Locale;
 
 import io.complicated.stereostream.utils.Slugify;
 
+import static android.text.TextUtils.join;
 import static io.complicated.stereostream.utils.GsonSingleton.getGson;
 
-public final class Room implements Cloneable {
+public class Room implements Cloneable {
     @SerializedName("name")
-    private String mName;
+    protected String mName;
     @SerializedName("owner")
-    private String mOwner;
+    protected String mOwner;
 
-    private Room(final String name, final String owner) {
+    public Room(final String name, final String owner) {
         final Slugify slg = new Slugify();
-        mName = slg.slugify(name);
+        mName = slg.slugify(name.replace("_", "-"));
         mOwner = owner;
     }
 
@@ -45,7 +46,7 @@ public final class Room implements Cloneable {
 
     @Override
     @NonNull
-    public final String toString() {
+    public String toString() {
         return String.format(Locale.getDefault(),
                 "Room{\"name\": \"%s\", \"owner\": \"%s\"}",
                 mName, mOwner
