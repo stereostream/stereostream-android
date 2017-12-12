@@ -111,7 +111,7 @@ final public class NetworkFinder {
 
             try {
                 System.out.println(iIPv4 + i);
-                Socket mySocket = new Socket();
+                SocketWrapper mySocket = new SocketWrapper();
                 SocketAddress address = new InetSocketAddress(iIPv4 + i, port);
 
                 mySocket.connect(address, 5);

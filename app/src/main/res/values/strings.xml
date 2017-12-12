@@ -111,5 +111,7 @@
     <string name="action_update_room">Update room</string>
     <string name="connecting_to_server">Connecting to server&#8230;</string>
     <string name="send">Send</string>
+    <string name="show_video">Show stream</string>
+    <string name="hide_video">Hide stream</string>
     <string name="title_activity_room">Room</string>
 </resources>

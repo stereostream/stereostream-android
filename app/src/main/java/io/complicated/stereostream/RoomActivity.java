@@ -10,6 +10,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputEditText;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -25,6 +26,10 @@ import android.widget.ViewSwitcher;
 import java.lang.ref.WeakReference;
 import java.net.ConnectException;
 import java.net.URISyntaxException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 import io.complicated.stereostream.api.room.Room;
@@ -37,6 +42,9 @@ import io.complicated.stereostream.utils.ErrorHandler;
 import io.complicated.stereostream.utils.ErrorOrEntity;
 import io.complicated.stereostream.utils.PrefSingleton;
 import io.complicated.stereostream.utils.ProgressHandler;
+import io.complicated.stereostream.utils.SocketWrapper;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 
 import static io.complicated.stereostream.utils.Formatters.ExceptionFormatter;
 
@@ -67,6 +75,10 @@ public final class RoomActivity extends AppCompatActivity {
     private ChatClient mChatClient;
 
     // Video
+    private Button mShowVideo0Btn;
+    private boolean mShowVideo0 = false;
+    private Button mShowVideo1Btn;
+    private boolean mShowVideo1 = false;
     private VideoView mVideoView0;
     private VideoView mVideoView1;
 
@@ -206,16 +218,52 @@ public final class RoomActivity extends AppCompatActivity {
 
         mChatInputSend = (Button) findViewById(R.id.activity_room_chat_input_send);
 
+        final Socket inst = SocketWrapper.getInstance(mRoomClient.getNonApiBaseUri());
+        inst.on("connect", onConnect);
+        inst.connect();
+
+        // TODO: Move chat log to a listview and make a custom item.xml for it
+
+        inst.on("chat message", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                String s = (String) args[0];
+                Log.d("s", s);
+                final String[] ss = TextUtils.split(s, "\t");
+
+                final DateFormat df1 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+                Date parsedDate;
+                try {
+                    parsedDate = df1.parse(ss[0]);
+                } catch (ParseException e) {
+                    parsedDate = null;
+                }
+                final String dateAsStr = parsedDate == null ? ss[0] : parsedDate.toString();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mChatLog.setText(String.format(Locale.getDefault(), "%s by %s at %s\n%s",
+                                ss[2], ss[1], dateAsStr, mChatLog.getText()
+                        ));
+                    }
+                });
+            }
+        });
         mChatInputSend.setOnClickListener(new View.OnClickListener() {
             public final void onClick(View v) {
                 final String msg = String.format(
                         Locale.getDefault(), "%s", mChatInput.getText()
                 );
                 if (msg != null && msg.length() > 0) {
-                    mChatClient.connect();
+                    inst.emit("chat message",
+                            String.format(Locale.getDefault(), "%s\t%s\t%s",
+                                    accessToken, room.getName(), msg
+                            ));
+
+                    /*mChatClient.connect();
                     mChatClient.send(String.format(Locale.getDefault(), "%s\t%s\t%s",
                             accessToken, room.getName(), msg
-                    ));
+                    ));*/
                     mChatLog.setText(String.format(Locale.getDefault(), "%s\n%s",
                             msg, mChatLog.getText()
                     ));
@@ -225,20 +273,87 @@ public final class RoomActivity extends AppCompatActivity {
         });
     }
 
+    private Emitter.Listener onConnect = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            //SocketWrapper on connect callback
+        }
+    };
+
+    protected final void video0Init() {
+        final String showText = String.format(Locale.getDefault(),
+                "%s %d", getString(R.string.show_video), 0);
+        final String hideText = String.format(Locale.getDefault(),
+                "%s %d", getString(R.string.hide_video), 0);
+
+        mVideoView0 = (VideoView) findViewById(R.id.video_view0);
+
+        if (mShowVideo0) {
+            mShowVideo0Btn.setText(hideText);
+            mVideoView0.setVisibility(View.VISIBLE);
+            mVideoView0.setVideoURI(Uri.parse(String.format(Locale.getDefault(), "%s:8085/stream0.webm", mRoomClient.getNonApiBaseUri())));
+            mVideoView0.start();
+        } else {
+            mShowVideo0Btn.setText(showText);
+            if (mVideoView0.isPlaying())
+                mVideoView0.stopPlayback();
+            mVideoView0.setVisibility(View.GONE);
+        }
+    }
+
+    protected final void video1Init() {
+        final String showText = String.format(Locale.getDefault(),
+                "%s %d", getString(R.string.show_video), 1);
+        final String hideText = String.format(Locale.getDefault(),
+                "%s %d", getString(R.string.hide_video), 1);
+
+        mVideoView1 = (VideoView) findViewById(R.id.video_view1);
+
+        if (mShowVideo1) {
+            mShowVideo1Btn.setText(hideText);
+            mVideoView1.setVisibility(View.VISIBLE);
+            mVideoView1.setVideoURI(Uri.parse(String.format(Locale.getDefault(), "%s:8086/stream1.webm", mRoomClient.getNonApiBaseUri())));
+            mVideoView1.start();
+        } else {
+            mShowVideo1Btn.setText(showText);
+            if (mVideoView1.isPlaying())
+                mVideoView1.stopPlayback();
+            mVideoView1.setVisibility(View.GONE);
+        }
+    }
+
     @Override
     protected final void onStart() {
         super.onStart();
 
-        mVideoView0 = (VideoView) findViewById(R.id.video_view0);
+        mShowVideo0Btn = (Button) findViewById(R.id.show_video_0);
+        mShowVideo0Btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mShowVideo0 = !mShowVideo0;
+                video0Init();
+            }
+        });
+
+        video0Init();
+
+
+        mShowVideo1Btn = (Button) findViewById(R.id.show_video_1);
+        mShowVideo1Btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mShowVideo1 = !mShowVideo1;
+                video1Init();
+            }
+        });
+
+        video1Init();
+
+
         // mVideoView0.setOnPreparedListener(RoomActivity.this);
 
         //For now we just picked an arbitrary item to play
-        mVideoView0.setVideoURI(Uri.parse(String.format(Locale.getDefault(), "%s:8085/stream0.webm", mRoomClient.getNonApiBaseUri())));
-        mVideoView0.start();
 
-        mVideoView1 = (VideoView) findViewById(R.id.video_view1);
-        mVideoView1.setVideoURI(Uri.parse(String.format(Locale.getDefault(), "%s:8086/stream1.webm", mRoomClient.getNonApiBaseUri())));
-        mVideoView1.start();
         // setEditRoomInView(room);
     }
 
