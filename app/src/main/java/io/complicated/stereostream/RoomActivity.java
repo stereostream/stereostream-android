@@ -67,7 +67,8 @@ public final class RoomActivity extends AppCompatActivity {
     private ChatClient mChatClient;
 
     // Video
-    private VideoView mVideoView;
+    private VideoView mVideoView0;
+    private VideoView mVideoView1;
 
     private void showReadView() {
         if (isUpdateView()) mViewSwitcher.setDisplayedChild(0);
@@ -111,7 +112,7 @@ public final class RoomActivity extends AppCompatActivity {
 
         try {
             mRoomClient = new RoomClient(this, accessToken);
-        } catch (RuntimeException|ConnectException e) {
+        } catch (RuntimeException | ConnectException e) {
             ErrorHandler.askCloseApp(this, e.getMessage(), mSharedPrefs);
             return;
         }
@@ -222,14 +223,45 @@ public final class RoomActivity extends AppCompatActivity {
                 mChatInput.setText(null);
             }
         });
+    }
 
-        mVideoView = (VideoView) findViewById(R.id.video_view);
-        // mVideoView.setOnPreparedListener(RoomActivity.this);
+    @Override
+    protected final void onStart() {
+        super.onStart();
+
+        mVideoView0 = (VideoView) findViewById(R.id.video_view0);
+        // mVideoView0.setOnPreparedListener(RoomActivity.this);
 
         //For now we just picked an arbitrary item to play
-        mVideoView.setVideoURI(Uri.parse(mRoomClient.getBaseUri() + "/stream/stream0.webm"));
-        mVideoView.start();
+        mVideoView0.setVideoURI(Uri.parse(String.format(Locale.getDefault(), "%s:8085/stream0.webm", mRoomClient.getNonApiBaseUri())));
+        mVideoView0.start();
+
+        mVideoView1 = (VideoView) findViewById(R.id.video_view1);
+        mVideoView1.setVideoURI(Uri.parse(String.format(Locale.getDefault(), "%s:8086/stream1.webm", mRoomClient.getNonApiBaseUri())));
+        mVideoView1.start();
         // setEditRoomInView(room);
+    }
+
+    @Override
+    protected final void onPause() {
+        super.onPause();
+
+        if (mVideoView0 != null && mVideoView0.canPause())
+            mVideoView0.pause();
+
+        if (mVideoView1 != null && mVideoView1.canPause())
+            mVideoView1.pause();
+    }
+
+    @Override
+    protected final void onResume() {
+        super.onResume();
+
+        if (mVideoView0 != null && !mVideoView0.isPlaying())
+            mVideoView0.resume();
+
+        if (mVideoView1 != null && mVideoView1.isPlaying())
+            mVideoView1.resume();
     }
 
     private void setEditRoomInView(@NonNull final Room room) {

@@ -82,4 +82,8 @@ public class BaseApiClient {
     public final String getBaseUri() {
         return mBaseUri;
     }
+
+    public final String getNonApiBaseUri() {
+        return mBaseUri.substring(0, mBaseUri.lastIndexOf("/api"));
+    }
 }
