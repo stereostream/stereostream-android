@@ -4,15 +4,17 @@
 
     <TextView
         android:id="@+id/room_item_name"
-        android:layout_height="wrap_content"
         android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textColor="@color/colorPrimary" />
+        android:textColor="@color/colorPrimary"
+        android:textSize="22sp" />
 
     <TextView
         android:id="@+id/room_item_owner"
-        android:layout_height="wrap_content"
         android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textColor="@color/colorPrimary" />
+        android:textColor="@color/colorPrimary"
+        android:textSize="14sp" />
 </LinearLayout>

@@ -1,6 +1,7 @@
 package io.complicated.stereostream;
 
 import java.lang.ref.WeakReference;
+import java.net.ConnectException;
 import java.util.Locale;
 
 import android.annotation.TargetApi;
@@ -8,6 +9,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -18,6 +20,7 @@ import android.widget.TextView;
 
 import io.complicated.stereostream.api.room.Room;
 import io.complicated.stereostream.utils.CommonErrorHandlerRedirector;
+import io.complicated.stereostream.utils.ErrorHandler;
 import io.complicated.stereostream.utils.ErrorOrEntity;
 import io.complicated.stereostream.utils.Formatters;
 import io.complicated.stereostream.utils.PrefSingleton;
@@ -63,6 +66,13 @@ public final class CreateRoomActivity extends AppCompatActivity {
             return;
         }
 
+        final ActionBar toolbar = getSupportActionBar();
+        try {
+            toolbar.setDisplayHomeAsUpEnabled(true);
+        } catch (NullPointerException e) {
+            e.printStackTrace(System.err);
+        }
+
         // Set up the form.
         mErrorView = (TextView) findViewById(R.id.create_room_errors);
         mNameView = (TextView) findViewById(R.id.create_room_name);
@@ -82,7 +92,13 @@ public final class CreateRoomActivity extends AppCompatActivity {
                 getResources().getInteger(android.R.integer.config_shortAnimTime)
         );
 
-        mRoomsClient = new RoomsClient(this, accessToken);
+        try {
+            mRoomsClient = new RoomsClient(this, accessToken);
+        } catch (RuntimeException | ConnectException e) {
+            ErrorHandler.askCloseApp(this, e.getMessage(), mSharedPrefs);
+            return;
+        }
+
         mCommonErrorHandlerRedirector = new CommonErrorHandlerRedirector(this, mSharedPrefs);
     }
 

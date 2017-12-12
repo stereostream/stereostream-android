@@ -32,10 +32,12 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import io.complicated.stereostream.utils.ErrorHandler;
 import io.complicated.stereostream.utils.Formatters;
 import io.complicated.stereostream.utils.HttpCodeException;
 import io.complicated.stereostream.utils.PrefSingleton;
@@ -107,8 +109,13 @@ public class AuthActivity extends AppCompatActivity implements LoaderCallbacks<C
             }
         }
 
-        mAuthClient = new AuthClient(this);
-        mServerClient = new ServerClient(this);
+        try {
+            mAuthClient = new AuthClient(this);
+            mServerClient = new ServerClient(this);
+        } catch (RuntimeException | ConnectException e) {
+            ErrorHandler.askCloseApp(this, e.getMessage(), mSharedPrefs);
+            return;
+        }
 
         ApiClient.async(mAuthClient.getClient(), mServerClient.get_version(), new Callback() {
             @Override

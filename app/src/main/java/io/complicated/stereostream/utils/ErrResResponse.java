@@ -13,22 +13,37 @@ import static io.complicated.stereostream.utils.StringUtils.tryGetResponseStr;
  */
 public class ErrResResponse<F, S> extends ErrRes<F, S> {
     private final Response mResponse;
-    private final ErrorResponse mErrorResponse;
+    private ErrorResponse mErrorResponse;
+
+    public boolean isClosed() {
+        return mClosed;
+    }
+
+    private void setClosed(boolean mClosed) {
+        this.mClosed = mClosed;
+    }
+
+    private boolean mClosed = false;
 
     public ErrResResponse(final F error, final S result, final Response response) {
         super(error, result);
 
         mResponse = response;
-        if (error == null && response.code() / 100 > 3)
-            mErrorResponse = getGson()
-                    .fromJson(tryGetResponseStr(response), ErrorResponse.class);
-        else if (error != null && !(error instanceof ErrorResponse))
-            mErrorResponse = getGson()
-                    .fromJson(
-                            String.format(Locale.getDefault(), "%s", error),
-                            ErrorResponse.class
-                    );
-        else mErrorResponse = null;
+        if (error == null && response.code() / 100 > 3) {
+            try {
+                mErrorResponse = getGson()
+                        .fromJson(tryGetResponseStr(response), ErrorResponse.class);
+            } catch (IllegalStateException e) {
+                mErrorResponse = new ErrorResponse("ResponseError", "Probably Internet is out");
+            } finally {
+                setClosed(true);
+            }
+        } else if (error != null && !(error instanceof ErrorResponse)) {
+            mErrorResponse = getGson().fromJson(
+                    String.format(Locale.getDefault(), "%s", error), ErrorResponse.class
+            );
+            setClosed(true);
+        } else mErrorResponse = null;
     }
 
     public final Response getResponse() {

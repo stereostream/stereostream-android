@@ -27,6 +27,8 @@ public final class RoomAdapter extends PrimitiveArrayAdapter<Room> {
         if (convertView == null)
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.room_item, parent, false);
 
+        convertView.getLayoutParams().height = 70;
+
         // Lookup view for data population
         final TextView name = (TextView) convertView.findViewById(R.id.room_item_name);
         final TextView owner = (TextView) convertView.findViewById(R.id.room_item_owner);

@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.READ_PROFILE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -30,8 +30,11 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name="io.complicated.stereostream.CreateRoomActivity"
-            android:label="@string/title_activity_create_room" />
-        <activity android:name="io.complicated.stereostream.RoomActivity" />
+            android:label="@string/title_activity_create_room"
+            android:parentActivityName=".RoomsActivity" />
+        <activity
+            android:name="io.complicated.stereostream.RoomActivity"
+            android:label="@string/title_activity_room"
+            android:parentActivityName=".RoomsActivity" />
     </application>
-
 </manifest>

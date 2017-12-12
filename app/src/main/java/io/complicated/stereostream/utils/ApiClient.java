@@ -1,5 +1,7 @@
 package io.complicated.stereostream.utils;
 
+import android.util.Log;
+
 import com.google.gson.Gson;
 
 import java.io.IOException;
@@ -66,6 +68,14 @@ public final class ApiClient {
         } catch (final IOException e) {
             return new ErrorOrEntity<>(e);
         }
+
+        if (Integer.valueOf(res.getResponse().header("Content-Length")) < 1)
+            return new ErrorOrEntity<>(new Exception("Empty Content-Length"));
+        else if (res.getErrorResponse() != null) {
+            return new ErrorOrEntity<>(null, res.getErrorResponse(),
+                    res.getResponse().headers(), res.getResponse().code(), null);
+        } else if (res.isClosed())
+            return new ErrorOrEntity<>(new RuntimeException("Response is already closed"));
 
         final Reader charStream;
         try {

@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 
+import java.net.ConnectException;
 import java.util.Locale;
 
 import io.complicated.stereostream.utils.ApiClient;
@@ -19,7 +20,7 @@ public final class RoomsClient extends BaseApiClient {
     private final String mApiPrefix = "/room";
     private final Gson mGson = GsonSingleton.getGson();
 
-    public RoomsClient(final Context context, final String accessToken) {
+    public RoomsClient(final Context context, final String accessToken) throws ConnectException {
         super(context, null, null, null, null, true, accessToken);
     }
 
@@ -43,6 +44,7 @@ public final class RoomsClient extends BaseApiClient {
     }
 
     public final ErrorOrEntity<ListRooms> getSync() {
+        Log.d("RoomsClient", "getSync");
         return ApiClient.sync(getClient(), get(), ListRooms.class);
     }
 }

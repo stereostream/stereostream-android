@@ -3,15 +3,19 @@ package io.complicated.stereostream.utils;
 import java.io.IOException;
 
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public final class StringUtils {
     public static String tryGetResponseStr(final Response response) {
-        try {
-            final String str = response.body().string();
-            response.body().close();
-            return str;
-        } catch (IOException | NullPointerException _) {
-            return "";
-        }
+        final ResponseBody body = response.body();
+        if (body != null)
+            try {
+                return body.string();
+            } catch (IOException e) {
+                return "";
+            } finally {
+                body.close();
+            }
+        return "";
     }
 }

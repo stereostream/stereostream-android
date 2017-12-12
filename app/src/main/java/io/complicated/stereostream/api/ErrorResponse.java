@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.Locale;
 
 
-public class ErrorResponse {
+public class ErrorResponse extends Exception {
     @SerializedName(value="error", alternate={"code"})
     private String mError;
 

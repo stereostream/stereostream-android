@@ -1,5 +1,24 @@
 apply plugin: 'com.android.application'
 
+def getIP() {
+    InetAddress result = null;
+    Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+    while (interfaces.hasMoreElements()) {
+        Enumeration<InetAddress> addresses = interfaces.nextElement().getInetAddresses();
+        while (addresses.hasMoreElements()) {
+            InetAddress address = addresses.nextElement();
+            if (!address.isLoopbackAddress() && address instanceof Inet4Address) {
+                if (address.isSiteLocalAddress()) {
+                    return address.getHostAddress();
+                } else if (result == null) {
+                    result = address;
+                }
+            }
+        }
+    }
+    return (result != null ? result : InetAddress.getLocalHost()).getHostAddress();
+}
+
 android {
     compileSdkVersion 26
     defaultConfig {
@@ -12,7 +31,7 @@ android {
     }
     buildTypes {
         debug {
-            resValue "string", "api_prefix", "http://100.97.187.212:3000"
+            resValue "string", "api_prefix", "http://${getIP()}"
         }
 
         release {
@@ -37,5 +56,6 @@ dependencies {
     compile ('io.socket:socket.io-client:1.0.0') {
         exclude group: 'org.json', module: 'json'
     }
-    implementation 'org.webrtc:google-webrtc:1.0.+'
+    // implementation 'org.webrtc:google-webrtc:1.0.+'
+    compile 'com.devbrackets.android:exomedia:4.0.3'
 }

@@ -2,11 +2,13 @@ package io.complicated.stereostream;
 
 import android.annotation.TargetApi;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputEditText;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -17,9 +19,11 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.VideoView;
 import android.widget.ViewSwitcher;
 
 import java.lang.ref.WeakReference;
+import java.net.ConnectException;
 import java.net.URISyntaxException;
 import java.util.Locale;
 
@@ -29,6 +33,7 @@ import io.complicated.stereostream.api.room.RoomWithLog;
 import io.complicated.stereostream.utils.ActivityUtilsSingleton;
 import io.complicated.stereostream.utils.ChatClient;
 import io.complicated.stereostream.utils.CommonErrorHandlerRedirector;
+import io.complicated.stereostream.utils.ErrorHandler;
 import io.complicated.stereostream.utils.ErrorOrEntity;
 import io.complicated.stereostream.utils.PrefSingleton;
 import io.complicated.stereostream.utils.ProgressHandler;
@@ -40,7 +45,6 @@ public final class RoomActivity extends AppCompatActivity {
     private final ActivityUtilsSingleton mUtils = ActivityUtilsSingleton.getInstance();
     private ProgressBar mProgressView;
     private ViewSwitcher mViewSwitcher;
-    private TextView mReadRoomName;
 
     private TextInputEditText mEditRoomName;
     private Button mEditRoomButton;
@@ -62,7 +66,8 @@ public final class RoomActivity extends AppCompatActivity {
     private Button mChatInputSend;
     private ChatClient mChatClient;
 
-    //
+    // Video
+    private VideoView mVideoView;
 
     private void showReadView() {
         if (isUpdateView()) mViewSwitcher.setDisplayedChild(0);
@@ -104,17 +109,26 @@ public final class RoomActivity extends AppCompatActivity {
             return;
         }
 
-        mRoomClient = new RoomClient(this, accessToken);
+        try {
+            mRoomClient = new RoomClient(this, accessToken);
+        } catch (RuntimeException|ConnectException e) {
+            ErrorHandler.askCloseApp(this, e.getMessage(), mSharedPrefs);
+            return;
+        }
         final Room room = Room.fromString(mUtils.getFromLocalOrCache("current_room"));
-        if (room.getOwner() == null)
+        if (room.getOwner().length() > 0)
             room.setOwner(mUtils.getFromLocalOrCache("email"));
+
+        setTitle(room.getName());
+
+        final ActionBar toolbar = getSupportActionBar();
+        if (toolbar != null)
+            toolbar.setDisplayHomeAsUpEnabled(true);
 
         mCommonErrorHandlerRedirector = new CommonErrorHandlerRedirector(this, mSharedPrefs);
 
         mViewSwitcher = (ViewSwitcher) findViewById(R.id.activity_room_view_switcher);
         showReadView();
-
-        mReadRoomName = (TextView) findViewById(R.id.activity_room_item_name);
 
         if (mRoomWithLog == null) {
             mGetRoomTask = new GetRoomTask(RoomActivity.this, room);
@@ -209,12 +223,13 @@ public final class RoomActivity extends AppCompatActivity {
             }
         });
 
-        setRoomInView(room);
-        // setEditRoomInView(room);
-    }
+        mVideoView = (VideoView) findViewById(R.id.video_view);
+        // mVideoView.setOnPreparedListener(RoomActivity.this);
 
-    private void setRoomInView(@NonNull final Room room) {
-        mReadRoomName.setText(room.getName());
+        //For now we just picked an arbitrary item to play
+        mVideoView.setVideoURI(Uri.parse(mRoomClient.getBaseUri() + "/stream/stream0.webm"));
+        mVideoView.start();
+        // setEditRoomInView(room);
     }
 
     private void setEditRoomInView(@NonNull final Room room) {
@@ -222,7 +237,7 @@ public final class RoomActivity extends AppCompatActivity {
     }
 
     /**
-     * Shows the progress UI and hides the login form.
+     * Shows the progress UI and hides the room form.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(final boolean show) {

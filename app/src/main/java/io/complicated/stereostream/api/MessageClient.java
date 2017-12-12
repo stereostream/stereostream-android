@@ -2,6 +2,8 @@ package io.complicated.stereostream.api;
 
 import android.content.Context;
 
+import java.net.ConnectException;
+
 import io.complicated.stereostream.utils.BaseApiClient;
 import io.complicated.stereostream.utils.CachedReq;
 import io.complicated.stereostream.utils.IMimeTypes;
@@ -11,11 +13,12 @@ import okhttp3.RequestBody;
 public final class MessageClient extends BaseApiClient {
     private final String mApiPrefix = "/message/";
 
-    private MessageClient(final Context context, final String hostname, final CachedReq cache) {
+    private MessageClient(final Context context, final String hostname,
+                          final CachedReq cache) throws ConnectException {
         super(context, hostname, cache);
     }
 
-    public MessageClient(final Context context) {
+    public MessageClient(final Context context) throws ConnectException {
         this(context, null, null);
     }
 

@@ -32,7 +32,7 @@ public class PrefSingleton {
         e.commit();
     }
 
-    final String getString(final String key) {
+    public final String getString(final String key) {
         return mPref.getString(key, null);
     }
 

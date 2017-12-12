@@ -2,6 +2,9 @@ package io.complicated.stereostream.api;
 
 import android.content.Context;
 
+import java.net.ConnectException;
+
+import io.complicated.stereostream.utils.PrefSingleton;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
@@ -11,11 +14,12 @@ import io.complicated.stereostream.utils.IMimeTypes;
 
 
 public final class AuthClient extends BaseApiClient {
-    private AuthClient(final Context context, final String hostname, final CachedReq cache) {
+    private AuthClient(final Context context, final String hostname,
+                       final CachedReq cache) throws ConnectException {
         super(context, hostname, cache);
     }
 
-    public AuthClient(final Context context) {
+    public AuthClient(final Context context) throws ConnectException {
         this(context, null, null);
     }
 

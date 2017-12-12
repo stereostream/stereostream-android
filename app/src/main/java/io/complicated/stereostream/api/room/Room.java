@@ -8,7 +8,6 @@ import java.util.Locale;
 
 import io.complicated.stereostream.utils.Slugify;
 
-import static android.text.TextUtils.join;
 import static io.complicated.stereostream.utils.GsonSingleton.getGson;
 
 public class Room implements Cloneable {
@@ -40,6 +39,7 @@ public class Room implements Cloneable {
         mOwner = owner;
     }
 
+    @NonNull
     public final String getOwner() {
         return mOwner != null ? mOwner : "";
     }
@@ -56,6 +56,10 @@ public class Room implements Cloneable {
     public static Room fromString(final String s) {
         return s == null ? null : getGson().fromJson(s.startsWith("{") ? s :
                 s.substring(s.indexOf("{")), Room.class);
+    }
+
+    public static Room[] fromStringArray(final String s) {
+        return getGson().fromJson(s, Room[].class);
     }
 
     @Override
