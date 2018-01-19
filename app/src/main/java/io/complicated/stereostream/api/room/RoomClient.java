@@ -7,11 +7,11 @@ import com.google.gson.Gson;
 import java.net.ConnectException;
 import java.util.Locale;
 
+import io.complicated.stereostream.utils.ApiClient;
 import io.complicated.stereostream.utils.BaseApiClient;
+import io.complicated.stereostream.utils.CachedReq;
 import io.complicated.stereostream.utils.ErrorOrEntity;
 import io.complicated.stereostream.utils.IMimeTypes;
-import io.complicated.stereostream.utils.ApiClient;
-import io.complicated.stereostream.utils.CachedReq;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
@@ -54,6 +54,13 @@ public final class RoomClient extends BaseApiClient {
 
     public final ErrorOrEntity<RoomWithLog> getSync(final Room room) {
         return ApiClient.sync(getClient(), get(room), RoomWithLog.class);
+        /*
+        try {
+            Log.d("ApiClient", ApiClient.sync(getClient(), get(room)).getResponse().toString());
+        } catch (IOException e) {
+            e.printStackTrace(System.err);
+        }
+        */
     }
 
     public final Request put(final Room prevRoom, final Room newRoom) {

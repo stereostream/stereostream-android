@@ -14,27 +14,35 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.VideoView;
 import android.widget.ViewSwitcher;
 
+import com.squareup.picasso.Picasso;
+import com.stfalcon.chatkit.commons.ImageLoader;
+import com.stfalcon.chatkit.messages.MessageHolders;
+import com.stfalcon.chatkit.messages.MessageInput;
+import com.stfalcon.chatkit.messages.MessagesList;
+import com.stfalcon.chatkit.messages.MessagesListAdapter;
+
 import java.lang.ref.WeakReference;
 import java.net.ConnectException;
 import java.net.URISyntaxException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
+import io.complicated.stereostream.api.room.LogEntry;
 import io.complicated.stereostream.api.room.Room;
 import io.complicated.stereostream.api.room.RoomClient;
 import io.complicated.stereostream.api.room.RoomWithLog;
+import io.complicated.stereostream.chat.ChatMessage;
+import io.complicated.stereostream.chat.MessageLogEntry;
 import io.complicated.stereostream.utils.ActivityUtilsSingleton;
 import io.complicated.stereostream.utils.ChatClient;
 import io.complicated.stereostream.utils.CommonErrorHandlerRedirector;
@@ -49,16 +57,15 @@ import io.socket.emitter.Emitter;
 import static io.complicated.stereostream.utils.Formatters.ExceptionFormatter;
 
 public final class RoomActivity extends AppCompatActivity {
+    private static RoomClient mRoomClient;
     private final PrefSingleton mSharedPrefs = PrefSingleton.getInstance();
     private final ActivityUtilsSingleton mUtils = ActivityUtilsSingleton.getInstance();
     private ProgressBar mProgressView;
     private ViewSwitcher mViewSwitcher;
-
     private TextInputEditText mEditRoomName;
     private Button mEditRoomButton;
     private TextView mErrorView;
     private CommonErrorHandlerRedirector mCommonErrorHandlerRedirector;
-    private static RoomClient mRoomClient;
     private ProgressHandler mProgressHandler;
     private GetRoomTask mGetRoomTask = null;
     private UpdateRoomTask mUpdateRoomsTask = null;
@@ -69,10 +76,11 @@ public final class RoomActivity extends AppCompatActivity {
 
     // Chat
     private ScrollView mChatLogScroll;
-    private TextView mChatLog;
-    private EditText mChatInput;
-    private Button mChatInputSend;
+    /*private TextView mChatLog;*/
+    private MessageInput mChatInput;
     private ChatClient mChatClient;
+    private MessagesList mMessagesList;
+    private MessagesListAdapter<MessageLogEntry> mMessagesListAdapter;
 
     // Video
     private Button mShowVideo0Btn;
@@ -81,6 +89,12 @@ public final class RoomActivity extends AppCompatActivity {
     private boolean mShowVideo1 = false;
     private VideoView mVideoView0;
     private VideoView mVideoView1;
+    private Emitter.Listener onConnect = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            //SocketWrapper on connect callback
+        }
+    };
 
     private void showReadView() {
         if (isUpdateView()) mViewSwitcher.setDisplayedChild(0);
@@ -166,7 +180,8 @@ public final class RoomActivity extends AppCompatActivity {
             });
 
 
-        final FloatingActionButton roomEditBtn = (FloatingActionButton) findViewById(R.id.activity_room_item_owner_edit_btn);
+        final FloatingActionButton roomEditBtn = (FloatingActionButton)
+        findViewById(R.id.activity_room_item_owner_edit_btn);
         if (roomEditBtn != null) roomEditBtn.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -175,7 +190,8 @@ public final class RoomActivity extends AppCompatActivity {
                     }
                 });
 
-        final FloatingActionButton roomDelBtn = (FloatingActionButton) findViewById(R.id.activity_room_item_owner_del_btn);
+        final FloatingActionButton roomDelBtn = (FloatingActionButton)
+         findViewById(R.id.activity_room_item_owner_del_btn);
         if (roomDelBtn != null) roomDelBtn.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -202,25 +218,60 @@ public final class RoomActivity extends AppCompatActivity {
         }
 
         mChatLogScroll = (ScrollView) findViewById(R.id.activity_room_chat_log_scroll);
-        mChatLog = (TextView) findViewById(R.id.activity_room_chat_log);
-        mChatLog.setText(mRoomWithLog == null ? "" : mRoomWithLog.getLogStr());
+        // mChatLog = (TextView) findViewById(R.id.activity_room_chat_log);
 
-        mChatInput = (EditText) findViewById(R.id.activity_room_chat_input);
-        mChatInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            public final boolean onEditorAction(final TextView v, final int actionId, final KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEND || actionId == EditorInfo.IME_ACTION_UNSPECIFIED) {
-                    mChatInputSend.performClick();
+        mMessagesList = (MessagesList) findViewById(R.id.messagesList);
+
+        final MessageHolders holders = new MessageHolders();
+
+        mMessagesListAdapter = new MessagesListAdapter<>(
+                new Date().toString(), holders, new ImageLoader() {
+            @Override
+            public void loadImage(ImageView imageView, String url) {
+                //If you using another library - write here your way to load image
+                Picasso.with(RoomActivity.this).load(url).into(imageView);
+            }
+        });
+
+        mMessagesList.setAdapter(mMessagesListAdapter);
+
+        populateChatLog();
+
+        mChatInput = findViewById(R.id.activity_room_chat_input2);
+        final EditText inputEditText = mChatInput.getInputEditText();
+        inputEditText.setImeOptions(KeyEvent.ACTION_DOWN);
+        inputEditText.setImeActionLabel("DONE", KeyEvent.KEYCODE_ENTER);
+        inputEditText.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event != null
+                        && event.getAction() == KeyEvent.ACTION_DOWN
+                        && keyCode == KeyEvent.KEYCODE_ENTER) {
+                    mChatInput.getButton().performClick();
                     return true;
                 }
                 return false;
             }
         });
 
-        mChatInputSend = (Button) findViewById(R.id.activity_room_chat_input_send);
-
         final Socket inst = SocketWrapper.getInstance(mRoomClient.getNonApiBaseUri());
         inst.on("connect", onConnect);
         inst.connect();
+
+        mChatInput.setInputListener(new MessageInput.InputListener() {
+            @Override
+            public boolean onSubmit(CharSequence input) {
+                final String input_s = input.toString();
+                Log.d("onSubmit", input_s);
+                if (input_s.length() > 0) {
+                    inst.emit("chat message",
+                            String.format(Locale.getDefault(), "%s\t%s\t%s",
+                                    accessToken, room.getName(), input_s
+                            ));
+                }
+                return true;
+            }
+        });
 
         // TODO: Move chat log to a listview and make a custom item.xml for it
 
@@ -228,10 +279,12 @@ public final class RoomActivity extends AppCompatActivity {
             @Override
             public void call(Object... args) {
                 String s = (String) args[0];
-                Log.d("s", s);
+                Log.d("incoming-socket", s);
                 final String[] ss = TextUtils.split(s, "\t");
 
-                final DateFormat df1 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+                /*
+                final DateFormat df1 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+                        Locale.getDefault());
                 Date parsedDate;
                 try {
                     parsedDate = df1.parse(ss[0]);
@@ -239,46 +292,45 @@ public final class RoomActivity extends AppCompatActivity {
                     parsedDate = null;
                 }
                 final String dateAsStr = parsedDate == null ? ss[0] : parsedDate.toString();
+                */
+
+                final ChatMessage chatMessage = new ChatMessage(ss[0], ss[1], ss[2]);
+                final MessageLogEntry messageLogEntry = new MessageLogEntry(chatMessage.getDate(),
+                        chatMessage.getAuthor(), chatMessage.getMessage());
+
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mChatLog.setText(String.format(Locale.getDefault(), "%s by %s at %s\n%s",
-                                ss[2], ss[1], dateAsStr, mChatLog.getText()
-                        ));
+                        mMessagesListAdapter.addToStart(messageLogEntry, true);
+                        // mMessagesListAdapter.addToEnd(new ArrayList<MessageLogEntry>() {{add(messageLogEntry);}}, true);
+                        scrollChatLog();
                     }
                 });
             }
         });
-        mChatInputSend.setOnClickListener(new View.OnClickListener() {
-            public final void onClick(View v) {
-                final String msg = String.format(
-                        Locale.getDefault(), "%s", mChatInput.getText()
-                );
-                if (msg != null && msg.length() > 0) {
-                    inst.emit("chat message",
-                            String.format(Locale.getDefault(), "%s\t%s\t%s",
-                                    accessToken, room.getName(), msg
-                            ));
-
-                    /*mChatClient.connect();
-                    mChatClient.send(String.format(Locale.getDefault(), "%s\t%s\t%s",
-                            accessToken, room.getName(), msg
-                    ));*/
-                    mChatLog.setText(String.format(Locale.getDefault(), "%s\n%s",
-                            msg, mChatLog.getText()
-                    ));
-                }
-                mChatInput.setText(null);
-            }
-        });
     }
 
-    private Emitter.Listener onConnect = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            //SocketWrapper on connect callback
+    private void scrollChatLog() {
+        mChatLogScroll.fullScroll(ScrollView.FOCUS_DOWN);
+        mChatLogScroll.scrollBy(mChatLogScroll.getBottom(), mChatLogScroll.getBottom());
+        mChatLogScroll.scrollTo(mChatLogScroll.getBottom(), mChatLogScroll.getBottom());
+        mMessagesList.scrollToPosition(mMessagesList.getBottom());
+        mMessagesList.scrollTo(mMessagesList.getBottom(), mMessagesList.getBottom());
+    }
+
+    private void populateChatLog() {
+        if (mRoomWithLog == null) return;
+        final LogEntry[] logEntries = mRoomWithLog.getLogEntries();
+        if (logEntries.length < 1) return;
+        final MessageLogEntry[] messageLogEntries = new MessageLogEntry[logEntries.length];
+        for (int i = 0; i < logEntries.length; i++) {
+            messageLogEntries[i] = new MessageLogEntry(logEntries[i]);
+            // Log.d("messageLogEntries", logEntries[i].toString());
+            // mMessagesListAdapter.addToStart(messageLogEntries[i], true);
         }
-    };
+        mMessagesListAdapter.addToEnd(Arrays.asList(messageLogEntries), true);
+        scrollChatLog();
+    }
 
     protected final void video0Init() {
         final String showText = String.format(Locale.getDefault(),
@@ -291,7 +343,8 @@ public final class RoomActivity extends AppCompatActivity {
         if (mShowVideo0) {
             mShowVideo0Btn.setText(hideText);
             mVideoView0.setVisibility(View.VISIBLE);
-            mVideoView0.setVideoURI(Uri.parse(String.format(Locale.getDefault(), "%s:8085/stream0.webm", mRoomClient.getNonApiBaseUri())));
+            mVideoView0.setVideoURI(Uri.parse(String.format(Locale.getDefault(),
+                    "%s:8085/stream0.webm", mRoomClient.getNonApiBaseUri())));
             mVideoView0.start();
         } else {
             mShowVideo0Btn.setText(showText);
@@ -312,7 +365,8 @@ public final class RoomActivity extends AppCompatActivity {
         if (mShowVideo1) {
             mShowVideo1Btn.setText(hideText);
             mVideoView1.setVisibility(View.VISIBLE);
-            mVideoView1.setVideoURI(Uri.parse(String.format(Locale.getDefault(), "%s:8086/stream1.webm", mRoomClient.getNonApiBaseUri())));
+            mVideoView1.setVideoURI(Uri.parse(String.format(Locale.getDefault(),
+                    "%s:8086/stream1.webm", mRoomClient.getNonApiBaseUri())));
             mVideoView1.start();
         } else {
             mShowVideo1Btn.setText(showText);
@@ -422,8 +476,10 @@ public final class RoomActivity extends AppCompatActivity {
                 intent.putExtra("room_with_log", err_res.getEntity().toString());
                 activity.startActivity(intent);
                 */
+
                 activity.setRoomWithLog(err_res.getEntity());
-                activity.mChatLog.setText(activity.mRoomWithLog.getLogStr());
+                activity.populateChatLog();
+                // activity.mChatLog.setText(activity.mRoomWithLog.getLogStr());
             } else {
                 activity.mCommonErrorHandlerRedirector.process(err_res);
                 if (err_res.getErrorResponse() == null) {
@@ -456,8 +512,7 @@ public final class RoomActivity extends AppCompatActivity {
 
         @Override
         protected final ErrorOrEntity<Room> doInBackground(final Void... params) {
-            if (mNewRoom.getOwner() == null)
-                mNewRoom.setOwner(mPrevRoom.getOwner());
+            mNewRoom.setOwner(mPrevRoom.getOwner());
             return mRoomClient.putSync(mPrevRoom, mNewRoom);
         }
 

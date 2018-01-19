@@ -24,12 +24,14 @@
 
             <Button
                 android:id="@+id/show_video_0"
+                style="?android:attr/borderlessButtonStyle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
             <Button
                 android:id="@+id/show_video_1"
+                style="?android:attr/borderlessButtonStyle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
@@ -41,23 +43,17 @@
             android:layout_height="wrap_content"
             android:textColor="@color/colorPrimary" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        <VideoView
+            android:id="@+id/video_view0"
+            android:layout_width="320dp"
+            android:layout_height="240dp" />
 
-            <VideoView
-                android:id="@+id/video_view0"
-                android:layout_width="320dp"
-                android:layout_height="240dp"
-                android:layout_weight="1" />
+        <VideoView
+            android:id="@+id/video_view1"
+            android:layout_width="320dp"
+            android:layout_height="240dp" />
 
-            <VideoView
-                android:id="@+id/video_view1"
-                android:layout_width="320dp"
-                android:layout_height="240dp"
-                android:layout_weight="1" />
-        </LinearLayout>
-
+        <!--
         <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
             android:id="@+id/activity_room_chat_log_scroll"
             android:layout_width="match_parent"
@@ -71,19 +67,56 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/colorPrimary" />
         </ScrollView>
+        -->
 
-        <EditText
-            android:id="@+id/activity_room_chat_input"
+        <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/activity_room_chat_log_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="4"
+            android:fillViewport="false"
+            android:stackFromBottom="true"
+            android:transcriptMode="alwaysScroll">
+
+            <com.stfalcon.chatkit.messages.MessagesList
+                android:id="@+id/messagesList"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:incomingDefaultBubbleColor="@color/ivory"
+                app:incomingDefaultBubblePressedColor="@color/ivory_dark"
+                app:incomingDefaultBubbleSelectedColor="@color/gray"
+                app:incomingDefaultImageOverlayPressedColor="@color/black_10"
+                app:incomingDefaultImageOverlaySelectedColor="@color/gray_transparent"
+                app:incomingTextColor="@color/black"
+                app:incomingTextLinkColor="@color/green"
+                app:incomingTextSize="17sp"
+                app:outcomingDefaultBubbleColor="@color/green"
+                app:outcomingDefaultBubblePressedColor="@color/green_dark"
+                app:outcomingDefaultBubbleSelectedColor="@color/gray_dark_transparent"
+                app:outcomingDefaultImageOverlayPressedColor="@color/black_10"
+                app:outcomingDefaultImageOverlaySelectedColor="@color/gray_transparent"
+                app:outcomingTextColor="@color/white"
+                app:outcomingTextLinkColor="@color/brown"
+                app:outcomingTextSize="17sp" />
+        </ScrollView>
+
+        <com.stfalcon.chatkit.messages.MessageInput
+            android:id="@+id/activity_room_chat_input2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
             android:imeOptions="actionSend"
-            android:inputType="text" />
+            app:attachmentButtonBackground="?attr/selectableItemBackgroundBorderless"
+            app:attachmentButtonDefaultIconColor="@color/green"
+            app:attachmentButtonDefaultIconPressedColor="@color/green_dark"
+            app:attachmentButtonHeight="27dp"
+            app:attachmentButtonWidth="27dp"
+            app:inputButtonDefaultIconColor="@color/white"
+            app:inputButtonDefaultIconDisabledColor="@color/white60"
+            app:inputHint="@string/hint_enter_a_message"
+            app:inputMaxLines="1"
+            app:showAttachmentButton="false" />
 
-        <Button
-            android:id="@+id/activity_room_chat_input_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/send" />
 
         <!--
         <android.support.design.widget.FloatingActionButton
@@ -135,7 +168,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:layout_weight="2"
             android:orientation="vertical">
 
             <Button

@@ -58,4 +58,6 @@ dependencies {
     }
     // implementation 'org.webrtc:google-webrtc:1.0.+'
     compile 'com.devbrackets.android:exomedia:4.0.3'
+    compile 'com.github.stfalcon:chatkit:0.2.2'
+    compile 'com.squareup.picasso:picasso:2.5.2'
 }

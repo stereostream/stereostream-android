@@ -85,6 +85,7 @@ public final class ApiClient {
         }
 
         try {
+            Log.d("headers", res.getResponse().headers().toString());
             final ErrorOrEntity<E> ret = res.success() ?
                     new ErrorOrEntity<>(res.getError(), null,
                             res.getResponse().headers(), res.getResponse().code(),

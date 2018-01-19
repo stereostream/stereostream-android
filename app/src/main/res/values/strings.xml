@@ -114,4 +114,5 @@
     <string name="show_video">Show stream</string>
     <string name="hide_video">Hide stream</string>
     <string name="title_activity_room">Room</string>
+    <string name="hint_enter_a_message">Type a message…</string>
 </resources>

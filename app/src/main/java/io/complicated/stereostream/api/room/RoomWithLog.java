@@ -5,20 +5,24 @@ import android.support.annotation.NonNull;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Locale;
 
-import io.complicated.stereostream.utils.Slugify;
-
-import static android.text.TextUtils.join;
 import static io.complicated.stereostream.utils.GsonSingleton.getGson;
 
-public final class RoomWithLog extends Room implements Cloneable {
+public final class RoomWithLog /*extends Room*/ implements Cloneable {
     @SerializedName("log")
     private LogEntry[] mLogEntry;
 
+    @SerializedName("owner")
+    private String mOwner;
+
+    @SerializedName("name")
+    private String mName;
+
     public RoomWithLog(final String name, final String owner, final String[] log) {
-        super(name, owner);
+        mName = name;
+        mOwner = owner;
+        // super(name, owner);
         if (log == null || log.length < 1) return;
 
         final LogEntry[] logEntries = new LogEntry[log.length];
@@ -29,6 +33,11 @@ public final class RoomWithLog extends Room implements Cloneable {
 
     public RoomWithLog(final String name) {
         this(name, null, null);
+    }
+
+    public static RoomWithLog fromString(final String s) {
+        return s == null ? null : getGson().fromJson(s.startsWith("{") ? s :
+                s.substring(s.indexOf("{")), RoomWithLog.class);
     }
 
     public final String getLogStr() {
@@ -42,6 +51,10 @@ public final class RoomWithLog extends Room implements Cloneable {
         return s;
     }
 
+    public final LogEntry[] getLogEntries() {
+        return mLogEntry;
+    }
+
     @Override
     @NonNull
     public final String toString() {
@@ -50,10 +63,5 @@ public final class RoomWithLog extends Room implements Cloneable {
                 mName, mOwner,
                 mLogEntry != null && mLogEntry.length > 0 ? Arrays.toString(mLogEntry) : "[]"
         );
-    }
-
-    public static RoomWithLog fromString(final String s) {
-        return s == null ? null : getGson().fromJson(s.startsWith("{") ? s :
-                s.substring(s.indexOf("{")), RoomWithLog.class);
     }
 }

@@ -7,27 +7,40 @@ import com.google.gson.annotations.SerializedName;
 import java.util.Date;
 import java.util.Locale;
 
-import io.complicated.stereostream.utils.Slugify;
-
 import static io.complicated.stereostream.utils.GsonSingleton.getGson;
 
 public final class LogEntry implements Cloneable {
     @SerializedName("date")
     private Date mDate;
+
     @SerializedName("user")
     private String mUser;
 
-    final public String getContent() {
-        return mContent;
-    }
-
     @SerializedName("content")
     private String mContent;
+
 
     public LogEntry(final String date_s, final String user, final String content) {
         mDate = new Date(date_s);
         mUser = user;
         mContent = content;
+    }
+
+    public static LogEntry fromString(final String s) {
+        return s == null ? null : getGson().fromJson(s.startsWith("{") ? s :
+                s.substring(s.indexOf("{")), LogEntry.class);
+    }
+
+    final public String getContent() {
+        return mContent;
+    }
+
+    public final Date getCreatedAt() {
+        return mDate;
+    }
+
+    public final String getUserStr() {
+        return mUser;
     }
 
     @Override
@@ -37,11 +50,6 @@ public final class LogEntry implements Cloneable {
                 "LogEntry{\"date\": \"%s\", \"user\": \"%s\", \"content\": \"%s\"}",
                 mDate, mUser, mContent
         );
-    }
-
-    public static LogEntry fromString(final String s) {
-        return s == null ? null : getGson().fromJson(s.startsWith("{") ? s :
-                s.substring(s.indexOf("{")), LogEntry.class);
     }
 
     @Override
