@@ -1,14 +1,6 @@
 package io.complicated.stereostream;
 
-import java.lang.ref.WeakReference;
-import java.net.ConnectException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-
 import android.annotation.TargetApi;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
@@ -17,7 +9,6 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -26,22 +17,31 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.ViewSwitcher;
 
+import java.lang.ref.WeakReference;
+import java.net.ConnectException;
+import java.util.Arrays;
+import java.util.Locale;
+
+import io.complicated.stereostream.api.room.ListRooms;
 import io.complicated.stereostream.api.room.Room;
 import io.complicated.stereostream.api.room.RoomAdapter;
-import io.complicated.stereostream.api.room.ListRooms;
+import io.complicated.stereostream.api.room.RoomsClient;
+import io.complicated.stereostream.utils.ActivityUtilsSingleton;
 import io.complicated.stereostream.utils.CommonErrorHandlerRedirector;
 import io.complicated.stereostream.utils.ErrorHandler;
 import io.complicated.stereostream.utils.ErrorOrEntity;
 import io.complicated.stereostream.utils.Formatters;
 import io.complicated.stereostream.utils.PrefSingleton;
-import io.complicated.stereostream.api.room.RoomsClient;
-import io.complicated.stereostream.utils.ActivityUtilsSingleton;
 import io.complicated.stereostream.utils.ProgressHandler;
 
+import static io.complicated.stereostream.utils.GsonSingleton.getGson;
+
+
 public final class RoomsActivity extends AppCompatActivity {
+    public static final int CREATE = 0; // enum
+    private static RoomsClient mRoomsClient;
     private final PrefSingleton mSharedPrefs = PrefSingleton.getInstance();
     private final ActivityUtilsSingleton mUtils = ActivityUtilsSingleton.getInstance();
-    private static RoomsClient mRoomsClient;
     private LoadRoomsTask mLoadRoomsTask = null;
     private View mProgressView;
     private TextView mInfoMsg;
@@ -49,10 +49,33 @@ public final class RoomsActivity extends AppCompatActivity {
     private ListView mContentListView;
     private CommonErrorHandlerRedirector mCommonErrorHandlerRedirector;
     private ProgressHandler mProgressHandler;
-    public static final int CREATE = 0; // enum
     private String mAccessToken;
+    private Toolbar mToolbar;
+    private FloatingActionButton mAddRoomBtn;
     //private View mRoomItemView;
     //private TextView getError()View;
+
+    private static void setRoomsAdapter(final RoomsActivity activity,
+                                        final Room[] rooms) {
+        final RoomAdapter roomAdapter = new RoomAdapter(
+                activity.getApplicationContext(), rooms
+        );
+        Log.d("setRoomsAdapter", Integer.toString(roomAdapter.getCount()));
+        if (roomAdapter.getCount() > 0) {
+            activity.mContentListView.setAdapter(roomAdapter);
+            ((BaseAdapter) activity.mContentListView.getAdapter()).notifyDataSetChanged();
+            Log.d("0shown", Boolean.toString(activity.mContentListView.isShown()));
+            //rooms.clone();
+            Log.d("onPostExecute::listsize", String.valueOf(activity.mContentListView.getAdapter().getCount()));
+            activity.showListOfRoomsView();
+            Log.d("1_getDisplayedChild()", String.valueOf(activity.mContentViewSwitcher.getDisplayedChild()));
+            Log.d("1shown", Boolean.toString(activity.mContentListView.isShown()));
+        } else {
+            activity.mInfoMsg.setText(activity.getString(R.string.empty_rooms));
+            activity.showEmptyRoomsView();
+            Log.d("2_getDisplayedChild()", String.valueOf(activity.mContentViewSwitcher.getDisplayedChild()));
+        }
+    }
 
     private void showEmptyRoomsView() {
         mContentViewSwitcher.setDisplayedChild(0);
@@ -60,6 +83,40 @@ public final class RoomsActivity extends AppCompatActivity {
 
     private void showListOfRoomsView() {
         mContentViewSwitcher.setDisplayedChild(1);
+    }
+
+    private void bindView() {
+        if (mProgressView == null)
+            mProgressView = findViewById(R.id.rooms_progress);
+        if (mInfoMsg == null)
+            mInfoMsg = (TextView) findViewById(R.id.rooms_info_msg);
+        if (mContentViewSwitcher == null)
+            mContentViewSwitcher = (ViewSwitcher) findViewById(R.id.rooms_content_view_switcher);
+        if (mContentListView == null) {
+            mContentListView = (ListView) findViewById(R.id.rooms_list);
+            mContentListView.setOnItemClickListener(new ItemClick());
+        }
+        if (mCommonErrorHandlerRedirector == null)
+            mCommonErrorHandlerRedirector = new CommonErrorHandlerRedirector(this, mSharedPrefs);
+        if (mProgressHandler == null)
+            mProgressHandler = new ProgressHandler(mProgressView, mContentViewSwitcher,
+                    getResources().getInteger(android.R.integer.config_shortAnimTime));
+        //getError()View = (TextView) findViewById(R.id.errors);
+
+        if (mToolbar == null) {
+            mToolbar = (Toolbar) findViewById(R.id.rooms_toolbar);
+            setSupportActionBar(mToolbar);
+        }
+
+        if (mAddRoomBtn == null) {
+            mAddRoomBtn = (FloatingActionButton) findViewById(R.id.rooms_add_btn);
+            mAddRoomBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(final View view) {
+                    startActivity(new Intent(RoomsActivity.this, CreateRoomActivity.class));
+                }
+            });
+        }
     }
 
     @Override
@@ -73,16 +130,7 @@ public final class RoomsActivity extends AppCompatActivity {
             return;
         }
 
-        mProgressView = findViewById(R.id.rooms_progress);
-
-        mInfoMsg = (TextView) findViewById(R.id.rooms_info_msg);
-        mContentViewSwitcher = (ViewSwitcher) findViewById(R.id.rooms_content_view_switcher);
-        mContentListView = (ListView) findViewById(R.id.rooms_list);
-        mContentListView.setOnItemClickListener(new ItemClick());
-        mCommonErrorHandlerRedirector = new CommonErrorHandlerRedirector(this, mSharedPrefs);
-        mProgressHandler = new ProgressHandler(mProgressView, mContentViewSwitcher,
-                getResources().getInteger(android.R.integer.config_shortAnimTime));
-        //getError()View = (TextView) findViewById(R.id.errors);
+        bindView();
 
         final Room newRoom = Room.fromString(mUtils.getFromLocalOrCache("new_room"));
         loadRooms(newRoom);
@@ -100,13 +148,26 @@ public final class RoomsActivity extends AppCompatActivity {
     protected final void onResume() {
         super.onResume();
         Log.d("lifecycle", "onResume");
+        bindView();
         if (mContentListView != null && mContentListView.getAdapter() != null)
             Log.d("onResume::list", String.valueOf(mContentListView.getAdapter().getCount()));
+        else {
+            final Room[] rooms = Room.fromStringArray(mSharedPrefs.getString("listRooms"));
+            Log.d("onResume", String.format(Locale.getDefault(),
+                    "rooms = %s; length = %d",
+                    Arrays.toString(rooms), rooms.length
+            ));
+            setRoomsAdapter(this, rooms);
+        }
+        Log.d("onResume::list", String.format(Locale.getDefault(), "mContentListView = %s\nmContentListView.getAdapter() = %s\n(mContentListView.getAdapter() == null) = %s",
+                mContentListView, mContentListView.getAdapter(),
+                mContentListView.getAdapter() == null
+        ));
         if (mAccessToken == null)
             try {
                 mAccessToken = getIntent().getExtras().getString("access_token");
             } catch (NullPointerException e) {
-                mAccessToken = null;
+                e.printStackTrace(System.err);
             }
     }
 
@@ -122,6 +183,7 @@ public final class RoomsActivity extends AppCompatActivity {
     protected final void onRestart() {
         super.onRestart();
         Log.d("lifecycle", "onRestart");
+        bindView();
         if (mContentListView != null && mContentListView.getAdapter() != null)
             Log.d("onRestart::list", String.valueOf(mContentListView.getAdapter().getCount()));
     }
@@ -136,34 +198,14 @@ public final class RoomsActivity extends AppCompatActivity {
         mSharedPrefs.Init(getApplicationContext());
         mUtils.Init(savedInstanceState, getIntent(), mSharedPrefs);
 
-        final Toolbar toolbar = (Toolbar) findViewById(R.id.rooms_toolbar);
-        setSupportActionBar(toolbar);
-
-        final FloatingActionButton add_btn = (FloatingActionButton) findViewById(R.id.rooms_add_btn);
-        if (add_btn != null)
-            add_btn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View view) {
-                    startActivity(new Intent(RoomsActivity.this, CreateRoomActivity.class));
-                }
-            });
-
         mAccessToken = mUtils.getFromLocalOrCache("access_token");
 
         if (mAccessToken == null) {
             Log.e("RoomsActivity", "access_token is null; redirecting...");
             startActivityForResult(new Intent(this, AuthActivity.class), CREATE);
         }
-    }
 
-    final class ItemClick implements AdapterView.OnItemClickListener {
-        public final void onItemClick(final AdapterView<?> parent, final View view,
-                                      final int position, final long id) {
-            final Intent intent = new Intent(getApplicationContext(), RoomActivity.class);
-            intent.putExtra("current_room",
-                    mContentListView.getItemAtPosition(position).toString());
-            startActivity(intent);
-        }
+        bindView();
     }
 
     @Override
@@ -243,22 +285,9 @@ public final class RoomsActivity extends AppCompatActivity {
 
             if (err_res.success()) {
                 final Room[] rooms = err_res.getEntity().getRooms();
-                activity.mSharedPrefs.putString("listRooms", Arrays.toString(rooms));
-                final RoomAdapter roomAdapter = new RoomAdapter(
-                        activity.getApplicationContext(), rooms
-                );
-                if (roomAdapter.getCount() > 0) {
-                    activity.mContentListView.setAdapter(roomAdapter);
-                    ((BaseAdapter) activity.mContentListView.getAdapter()).notifyDataSetChanged();
-                    //rooms.clone();
-                    Log.d("onPostExecute::listsize", String.valueOf(activity.mContentListView.getAdapter().getCount()));
-                    activity.showListOfRoomsView();
-                    Log.d("1_getDisplayedChild()", String.valueOf(activity.mContentViewSwitcher.getDisplayedChild()));
-                } else {
-                    activity.mInfoMsg.setText(activity.getString(R.string.empty_rooms));
-                    activity.showEmptyRoomsView();
-                    Log.d("2_getDisplayedChild()", String.valueOf(activity.mContentViewSwitcher.getDisplayedChild()));
-                }
+                // activity.mSharedPrefs.putString("listRooms", Arrays.toString(rooms));
+                activity.mSharedPrefs.putString("listRooms", getGson().toJson(rooms));
+                setRoomsAdapter(activity, rooms);
             } else {
                 Log.d("onPostExecute::else", "");
                 activity.mCommonErrorHandlerRedirector.process(err_res);
@@ -287,6 +316,16 @@ public final class RoomsActivity extends AppCompatActivity {
 
             activity.mLoadRoomsTask = null;
             activity.showProgress(false);
+        }
+    }
+
+    final class ItemClick implements AdapterView.OnItemClickListener {
+        public final void onItemClick(final AdapterView<?> parent, final View view,
+                                      final int position, final long id) {
+            final Intent intent = new Intent(getApplicationContext(), RoomActivity.class);
+            intent.putExtra("current_room",
+                    mContentListView.getItemAtPosition(position).toString());
+            startActivity(intent);
         }
     }
 }

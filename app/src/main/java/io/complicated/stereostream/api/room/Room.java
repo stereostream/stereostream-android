@@ -26,6 +26,16 @@ public class Room implements Cloneable {
         this(name, null);
     }
 
+    public static Room fromString(final String s) {
+        return s == null ? null : getGson().fromJson(s.startsWith("{") ? s :
+                s.substring(s.indexOf("{")), Room.class);
+    }
+
+    public static Room[] fromStringArray(final String s) {
+        if (s == null) return null;
+        return getGson().fromJson(s, Room[].class);
+    }
+
     @NonNull
     public final String getName() {
         return mName == null ? "" : mName;
@@ -35,13 +45,13 @@ public class Room implements Cloneable {
         mName = name;
     }
 
-    public final void setOwner(final String owner) {
-        mOwner = owner;
-    }
-
     @NonNull
     public final String getOwner() {
         return mOwner != null ? mOwner : "";
+    }
+
+    public final void setOwner(final String owner) {
+        mOwner = owner;
     }
 
     @Override
@@ -51,15 +61,6 @@ public class Room implements Cloneable {
                 "Room{\"name\": \"%s\", \"owner\": \"%s\"}",
                 mName, mOwner
         );
-    }
-
-    public static Room fromString(final String s) {
-        return s == null ? null : getGson().fromJson(s.startsWith("{") ? s :
-                s.substring(s.indexOf("{")), Room.class);
-    }
-
-    public static Room[] fromStringArray(final String s) {
-        return getGson().fromJson(s, Room[].class);
     }
 
     @Override
