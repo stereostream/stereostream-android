@@ -47,17 +47,17 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.android.support:design:26.1.0'
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.1'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
-    compile 'com.squareup.okio:okio:1.13.0'
-    compile 'com.squareup.okhttp3:okhttp:3.9.1'
-    compile 'com.google.code.gson:gson:2.8.2'
-    compile 'com.jakewharton:butterknife:8.4.0'
-    compile ('io.socket:socket.io-client:1.0.0') {
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    implementation 'com.squareup.okio:okio:1.14.0'
+    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
+    implementation 'com.google.code.gson:gson:2.8.2'
+    implementation 'com.jakewharton:butterknife:8.4.0'
+    implementation ('io.socket:socket.io-client:1.0.0') {
         exclude group: 'org.json', module: 'json'
     }
     // implementation 'org.webrtc:google-webrtc:1.0.+'
-    compile 'com.devbrackets.android:exomedia:4.0.3'
-    compile 'com.github.stfalcon:chatkit:0.2.2'
-    compile 'com.squareup.picasso:picasso:2.5.2'
+    implementation 'com.devbrackets.android:exomedia:4.0.3'
+    implementation 'com.github.stfalcon:chatkit:0.2.2'
+    implementation 'com.squareup.picasso:picasso:2.5.2'
 }

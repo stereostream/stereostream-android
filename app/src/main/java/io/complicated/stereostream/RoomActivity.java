@@ -13,14 +13,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.VideoView;
 import android.widget.ViewSwitcher;
 
 import com.squareup.picasso.Picasso;
@@ -51,6 +53,7 @@ import io.complicated.stereostream.utils.ErrorOrEntity;
 import io.complicated.stereostream.utils.PrefSingleton;
 import io.complicated.stereostream.utils.ProgressHandler;
 import io.complicated.stereostream.utils.SocketWrapper;
+import io.complicated.stereostream.utils.VideoViewCustom;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
@@ -83,12 +86,13 @@ public final class RoomActivity extends AppCompatActivity {
     private MessagesListAdapter<MessageLogEntry> mMessagesListAdapter;
 
     // Video
+    private LinearLayout mVidButtonLayout;
     private Button mShowVideo0Btn;
     private boolean mShowVideo0 = false;
     private Button mShowVideo1Btn;
     private boolean mShowVideo1 = false;
-    private VideoView mVideoView0;
-    private VideoView mVideoView1;
+    private VideoViewCustom mVideoView0;
+    private VideoViewCustom mVideoView1;
     private Emitter.Listener onConnect = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
@@ -217,8 +221,9 @@ public final class RoomActivity extends AppCompatActivity {
             Log.getStackTraceString(e);
         }
 
-        mChatLogScroll = (ScrollView) findViewById(R.id.activity_room_chat_log_scroll);
+        // TODO: REM mChatLogScroll = (ScrollView) findViewById(R.id.activity_room_chat_log_scroll);
         // mChatLog = (TextView) findViewById(R.id.activity_room_chat_log);
+        mVidButtonLayout = (LinearLayout) findViewById(R.id.vid_button_layout);
 
         mMessagesList = (MessagesList) findViewById(R.id.messagesList);
 
@@ -237,7 +242,7 @@ public final class RoomActivity extends AppCompatActivity {
 
         populateChatLog();
 
-        mChatInput = findViewById(R.id.activity_room_chat_input2);
+        mChatInput = findViewById(R.id.activity_room_chat_input);
         final EditText inputEditText = mChatInput.getInputEditText();
         inputEditText.setImeOptions(KeyEvent.ACTION_DOWN);
         inputEditText.setImeActionLabel("DONE", KeyEvent.KEYCODE_ENTER);
@@ -311,9 +316,11 @@ public final class RoomActivity extends AppCompatActivity {
     }
 
     private void scrollChatLog() {
+        /* // TODO: REM
         mChatLogScroll.fullScroll(ScrollView.FOCUS_DOWN);
         mChatLogScroll.scrollBy(mChatLogScroll.getBottom(), mChatLogScroll.getBottom());
         mChatLogScroll.scrollTo(mChatLogScroll.getBottom(), mChatLogScroll.getBottom());
+        */
         mMessagesList.scrollToPosition(mMessagesList.getBottom());
         mMessagesList.scrollTo(mMessagesList.getBottom(), mMessagesList.getBottom());
     }
@@ -321,7 +328,7 @@ public final class RoomActivity extends AppCompatActivity {
     private void populateChatLog() {
         if (mRoomWithLog == null) return;
         final LogEntry[] logEntries = mRoomWithLog.getLogEntries();
-        if (logEntries.length < 1) return;
+        if (logEntries == null || logEntries.length < 1) return;
         final MessageLogEntry[] messageLogEntries = new MessageLogEntry[logEntries.length];
         for (int i = 0; i < logEntries.length; i++) {
             messageLogEntries[i] = new MessageLogEntry(logEntries[i]);
@@ -338,20 +345,35 @@ public final class RoomActivity extends AppCompatActivity {
         final String hideText = String.format(Locale.getDefault(),
                 "%s %d", getString(R.string.hide_video), 0);
 
-        mVideoView0 = (VideoView) findViewById(R.id.video_view0);
+        mVideoView0 = (VideoViewCustom) findViewById(R.id.video_view0);
+        mVideoView0.setOnTouchListener(
+                new View.OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        Log.d("mVideoView0", "hide it");
+                        mShowVideo0 = false;
+                        video0Init();
+                        return false;
+                    }
+                }
+        );
 
+        ViewGroup.LayoutParams layoutParams = mVidButtonLayout.getLayoutParams();
         if (mShowVideo0) {
             mShowVideo0Btn.setText(hideText);
             mVideoView0.setVisibility(View.VISIBLE);
             mVideoView0.setVideoURI(Uri.parse(String.format(Locale.getDefault(),
                     "%s:8085/stream0.webm", mRoomClient.getNonApiBaseUri())));
             mVideoView0.start();
+            layoutParams.height += mVideoView0.getLayoutParams().height;
         } else {
             mShowVideo0Btn.setText(showText);
             if (mVideoView0.isPlaying())
                 mVideoView0.stopPlayback();
             mVideoView0.setVisibility(View.GONE);
+            layoutParams.height -= mVideoView0.getLayoutParams().height;
         }
+        mVidButtonLayout.setLayoutParams(layoutParams);
     }
 
     protected final void video1Init() {
@@ -360,20 +382,35 @@ public final class RoomActivity extends AppCompatActivity {
         final String hideText = String.format(Locale.getDefault(),
                 "%s %d", getString(R.string.hide_video), 1);
 
-        mVideoView1 = (VideoView) findViewById(R.id.video_view1);
+        mVideoView1 = (VideoViewCustom) findViewById(R.id.video_view1);
+        mVideoView1.setOnTouchListener(
+                new View.OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        Log.d("mVideoView1", "hide it");
+                        mShowVideo1 = false;
+                        video1Init();
+                        return false;
+                    }
+                }
+        );
 
+        ViewGroup.LayoutParams layoutParams = mVidButtonLayout.getLayoutParams();
         if (mShowVideo1) {
             mShowVideo1Btn.setText(hideText);
             mVideoView1.setVisibility(View.VISIBLE);
             mVideoView1.setVideoURI(Uri.parse(String.format(Locale.getDefault(),
                     "%s:8086/stream1.webm", mRoomClient.getNonApiBaseUri())));
             mVideoView1.start();
+            layoutParams.height += mVideoView1.getLayoutParams().height;
         } else {
             mShowVideo1Btn.setText(showText);
             if (mVideoView1.isPlaying())
                 mVideoView1.stopPlayback();
             mVideoView1.setVisibility(View.GONE);
+            layoutParams.height -= mVideoView1.getLayoutParams().height;
         }
+        mVidButtonLayout.setLayoutParams(layoutParams);
     }
 
     @Override

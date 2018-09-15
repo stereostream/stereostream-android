@@ -153,11 +153,15 @@ public final class RoomsActivity extends AppCompatActivity {
             Log.d("onResume::list", String.valueOf(mContentListView.getAdapter().getCount()));
         else {
             final Room[] rooms = Room.fromStringArray(mSharedPrefs.getString("listRooms"));
-            Log.d("onResume", String.format(Locale.getDefault(),
-                    "rooms = %s; length = %d",
-                    Arrays.toString(rooms), rooms.length
-            ));
-            setRoomsAdapter(this, rooms);
+            if (rooms != null && rooms.length > 0) {
+                Log.d("onResume", String.format(Locale.getDefault(),
+                        "rooms = %s; length = %d",
+                        Arrays.toString(rooms), rooms.length
+                ));
+                setRoomsAdapter(this, rooms);
+            } else {
+                Log.d("onResume", "rooms is empty");
+            }
         }
         Log.d("onResume::list", String.format(Locale.getDefault(), "mContentListView = %s\nmContentListView.getAdapter() = %s\n(mContentListView.getAdapter() == null) = %s",
                 mContentListView, mContentListView.getAdapter(),
